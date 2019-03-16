@@ -1,0 +1,424 @@
+---
+- hosts: 127.0.0.1
+  become: yes
+
+  gather_facts: True
+  tasks:
+    - debug:
+        var : inventory_hostname
+
+    - name: Remove the password for sudo group when sudo'ing
+      lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      become: yes
+
+    - name: Upgrade all packages to the latest version
+      apt:
+        name: "*"
+        state: latest    
+
+    - name: Install a list of default packages
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - apt-transport-https     
+        - ca-certificates     
+        - curl     
+        - gnupg-agent     
+        - software-properties-common
+        - build-essential 
+        - libssl-dev 
+        - libffi-dev 
+        - zlib1g-dev
+        - python3-dev
+        - python3-pip
+        - python3-venv
+        - apparmor-utils 
+        - avahi-daemon
+        - dbus 
+        - jq 
+        - network-manager 
+        - socat
+        - screen
+        - gcc 
+        - g++ 
+        - make
+
+    - name: Add manager user to sudo group
+      user:
+        name: manager
+        groups: sudo
+        append: yes
+
+    ###### Setup HASS
+
+    - name: Ensure group "hass" exists
+      group:
+        name: hass
+        state: present
+        
+    - name: Add the user 'hass' with no shell
+      user:
+        name: hass
+        shell: /bin/false
+        group: hass
+        append: yes
+        home: /opt/hass
+        create_home: yes
+        comment: "Home Assistant"
+
+    - name: Add hass user to sudo group
+      user:
+        name: hass
+        groups: sudo
+        append: yes
+
+    - name: Manually create the HASS initial virtualenv
+      command: python3 -m venv /opt/hass 
+      args:
+        creates: "/opt/hass/bin/activate"
+      become: yes
+      become_user: hass
+
+    - name: Setup wheel in HASS python virtualenv
+      pip:
+        virtualenv: /opt/hass
+        virtualenv_python: python3
+        name: wheel
+      become: yes
+      become_user: hass
+
+    - name: Setup homeassistant in HASS python virtualenv
+      pip:
+        virtualenv: /opt/hass
+        virtualenv_python: python3
+        name: homeassistant
+      become: yes
+      become_user: hass
+
+    - name: Create HASS service file
+      copy:
+        content: |
+          [Unit]
+          Description=Home Assistant
+          After=network-online.target
+          [Service]
+          Type=simple
+          User=hass
+          ExecStart=/opt/hass/bin/hass -c "/opt/hass/.homeassistant"
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/hass.service"
+        mode: 0755
+        owner: root
+
+    - name: Add HASS service
+      systemd:
+        state: started
+        name: hass 
+        enabled: yes
+
+    - name: Creates HASS config directory
+      file:
+        path: /opt/hass/.homeassistant/configs
+        state: directory
+        owner: hass
+        group: hass
+        mode: 0755
+        recurse: yes  
+
+    - name: stat scripts.yaml
+      stat: path=/opt/hass/.homeassistant/scripts.yaml
+      register: scripts_stat
+    - name: Move scripts.yaml to config folder
+      command: mv /opt/hass/.homeassistant/scripts.yaml /opt/hass/.homeassistant/configs/scripts.yaml
+      when: scripts_stat.stat.exists
+      args:
+        creates: /opt/hass/.homeassistant/configs/scripts.yaml
+        mode: 0644
+
+    - name: stat secrets.yaml
+      stat: path=/opt/hass/.homeassistant/secrets.yaml
+      register: secrets_stat
+    - name: Move secrets.yaml to config folder
+      command: mv /opt/hass/.homeassistant/secrets.yaml /opt/hass/.homeassistant/configs/secrets.yaml
+      when: secrets_stat.stat.exists
+      args:
+        creates: /opt/hass/.homeassistant/configs/secrets.yaml
+        mode: 0644
+    
+    - name: stat automations.yaml
+      stat: path=/opt/hass/.homeassistant/automations.yaml
+      register: automations_stat
+    - name: Move automations.yaml to config folder
+      command: mv /opt/hass/.homeassistant/automations.yaml /opt/hass/.homeassistant/configs/automations.yaml
+      when: automations_stat.stat.exists
+      args:
+        creates: /opt/hass/.homeassistant/configs/automations.yaml
+        mode: 0644
+
+    - name: stat groups.yaml
+      stat: path=/opt/hass/.homeassistant/groups.yaml
+      register: groups_stat
+    - name: Move groups.yaml to config folder
+      command: mv /opt/hass/.homeassistant/groups.yaml /opt/hass/.homeassistant/configs/groups.yaml
+      when: groups_stat.stat.exists
+      args:
+        creates: /opt/hass/.homeassistant/configs/groups.yaml
+        mode: 0644
+
+    - name: stat customize.yaml
+      stat: path=/opt/hass/.homeassistant/customize.yaml
+      register: customize_stat
+    - name: Move customize.yaml to config folder
+      command: mv /opt/hass/.homeassistant/customize.yaml /opt/hass/.homeassistant/configs/customize.yaml
+      when: customize_stat.stat.exists
+      args: 
+        creates: /opt/hass/.homeassistant/configs/customize.yaml
+        mode: 0644
+
+    - name: Move group include in configuration file
+      lineinfile:
+        path: /opt/hass/.homeassistant/configuration.yaml
+        state: present
+        regexp: '^group'
+        line: 'group: !include configs/groups.yaml'
+
+    - name: Move notifiers include in configuration file
+      lineinfile:
+        path: /opt/hass/.homeassistant/configuration.yaml
+        state: present
+        regexp: '^notify'
+        line: 'notify !include configs/notifiers.yaml'
+
+    - name: Move automations include in configuration file
+      lineinfile:
+        path: /opt/hass/.homeassistant/configuration.yaml
+        state: present
+        regexp: '^automation'
+        line: 'automation: !include configs/automations.yaml'
+
+    - name: Move scripts include in configuration file
+      lineinfile:
+        path: /opt/hass/.homeassistant/configuration.yaml
+        state: present
+        regexp: '^script'
+        line: 'script: !include configs/scripts.yaml'
+
+    - name: Move device_tracker include in configuration file
+      lineinfile:
+        path: /opt/hass/.homeassistant/configuration.yaml
+        state: present
+        regexp: '^device_tracker'
+        line: 'device_tracker: !include configs/device_tracker.yaml'
+
+    ##### Docker Stuff
+    - name: Add an APT key for Docker Repo
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repo
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+        filename: docker-ce.list
+
+    - name: Install Docker
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - docker-ce 
+        - docker-ce-cli 
+        - containerd.io
+
+    - name: Add manager user to docker group
+      user:
+        name: manager
+        groups: docker
+        append: yes
+
+    - name: Add hass user to docker group
+      user:
+        name: hass
+        groups: docker
+        append: yes
+
+    - name: Make sure the docker service is running
+      systemd:
+        state: started
+        name: docker
+        enabled: yes
+
+          ##### NodeJS Stuff
+    - name: Add an APT key for Node Repo
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+
+    - name: Add Node Repo
+      apt_repository:
+        repo: deb https://deb.nodesource.com/node_10.x bionic main
+        state: present
+        filename: nodesource.list 
+
+    - name: Install NodeJS
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - yarn
+        - nodejs
+
+
+          ###### InCron which does reload based upon a file edit
+    - name: Install incron
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - incron
+
+    - name: Make sure the incron service is running
+      systemd:
+        state: started
+        name: incron
+        enabled: yes
+
+    - name: Ensure root can use incron
+      lineinfile:
+        path: /etc/incron.allow
+        state: present
+        line: 'root'
+
+    - name: Change incron default editor
+      lineinfile:
+        path: /etc/incron.conf
+        regexp: '^editor'
+        line: 'editor = vi'
+        state: present
+
+    - name: Create incron file for hass
+      copy:
+        content: |
+          /opt/hass/.homeassistant/configs IN_MODIFY,IN_ATTRIB,IN_CREATE,IN_DELETE,IN_CLOSE_WRITE systemctl restart hass
+          /opt/hass/.homeassistant/configuration.yaml IN_MODIFY,IN_ATTRIB,IN_CREATE,IN_DELETE,IN_CLOSE_WRITE systemctl restart hass
+        dest: "/var/spool/incron/root"
+        mode: 0755
+        owner: root
+
+        ######### Frontail log monitor
+    - name: Install the globally package "frontail".
+      npm:
+        name: frontail
+        global: yes
+        state: present
+
+    - name: Create frontail-hass service file
+      copy:
+        content: |
+          [Unit]
+          Description=Frontail for Home Assistant
+          After=network-online.target
+          [Service]
+          Type=simple
+          User=hass
+          ExecStart=/usr/bin/frontail -p 9001 -U hass -P hass --ui-highlight /opt/hass/.homeassistant/home-assistant.log --ui-highlight-preset=/opt/hass/.preset/default.json -t dark
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/frontail-hass.service"
+        mode: 0755
+        owner: root
+
+    - name: Creates frontail-hass config directory
+      file:
+        path: /opt/hass/.preset
+        state: directory
+        owner: hass
+        group: hass
+        recurse: yes
+
+    - name: Create frontail-hass config file
+      copy:
+        content: |
+          {
+            "words": {
+              "ERROR": "color: red;",
+              "FATAL": "color :red;",
+              "CRITICAL": "color :red;",
+              "WARNING": "color: orange;",
+              "WARN": "color: orange;",
+              "INFO": "color: green;",
+              "DEBUG": "color: white;"
+            },
+            "lines": {
+              "ERROR": "font-weight: bold;"
+            }
+          }
+        dest: "/opt/hass/.preset/default.json"
+        owner: hass
+
+    - name: Add Frontail-HASS service
+      systemd:
+        state: started
+        name: frontail-hass
+        enabled: yes
+
+######## Add Samba
+    - name: Install Samba
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - samba
+
+    - name: Add SMBD service
+      systemd:
+        state: started
+        name: smbd
+        enabled: yes
+    - name: Add NMBD service
+      systemd:
+        state: started
+        name: nmbd
+        enabled: yes
+
+    - name: Copy over the initial samba config
+      copy:
+        src: smb.conf
+        dest: /etc/samba/smb.conf
+        owner: root
+        group: root
+        mode: 0644
+
+ ##### Add mosquitto
+    - name: Add mosquitto repo
+      apt_repository:
+        repo: ppa:mosquitto-dev/mosquitto-ppa
+        state: present
+
+    - name: Install mosquitto packages
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - mosquitto
+        - mosquitto-clients
+
+    - name: Add mosquitto service
+      systemd:
+        state: started
+        name: mosquitto 
+        enabled: yes
+

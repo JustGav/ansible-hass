@@ -429,3 +429,18 @@
       vars:
         packages:
         - ffmpeg
+
+### Netdata
+    - name: Install Netdata packages
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - netdata
+        
+     - name: Add netdata service
+      systemd:
+        state: started
+        name: netdata
+        enabled: yes
+      

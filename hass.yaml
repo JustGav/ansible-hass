@@ -423,7 +423,7 @@
         enabled: yes
 
 ### FFMPEG
-    - name: Install a list of default packages
+    - name: Install FFMPEG packages
       apt:
         name: "{{ packages }}"
       vars:

@@ -438,7 +438,7 @@
         packages:
         - netdata
         
-     - name: Add netdata service
+    - name: Add netdata service
       systemd:
         state: started
         name: netdata

@@ -422,3 +422,10 @@
         name: mosquitto 
         enabled: yes
 
+### FFMPEG
+    - name: Install a list of default packages
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - ffmpeg

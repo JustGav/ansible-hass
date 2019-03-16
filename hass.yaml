@@ -444,7 +444,7 @@
         name: netdata
         enabled: yes
         
-     - name: Change NetData to allow external connections
+    - name: Change NetData to allow external connections
       lineinfile:
         path: /etc/netdata/netdata.conf
         state: present

@@ -443,4 +443,10 @@
         state: started
         name: netdata
         enabled: yes
-      
+        
+     - name: Change NetData to allow external connections
+      lineinfile:
+        path: /etc/netdata/netdata.conf
+        state: present
+        regexp: 'bind socket'
+        line: 'bind socket to IP = 0.0.0.0'

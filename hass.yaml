@@ -422,31 +422,3 @@
         name: mosquitto 
         enabled: yes
 
-### FFMPEG
-    - name: Install FFMPEG packages
-      apt:
-        name: "{{ packages }}"
-      vars:
-        packages:
-        - ffmpeg
-
-### Netdata
-    - name: Install Netdata packages
-      apt:
-        name: "{{ packages }}"
-      vars:
-        packages:
-        - netdata
-        
-    - name: Add netdata service
-      systemd:
-        state: started
-        name: netdata
-        enabled: yes
-        
-    - name: Change NetData to allow external connections
-      lineinfile:
-        path: /etc/netdata/netdata.conf
-        state: present
-        regexp: 'bind socket'
-        line: 'bind socket to IP = 0.0.0.0'

@@ -1,0 +1,31 @@
+- name: Creates gogs data directory
+  file:
+    path: /opt/gogs
+    state: directory
+    owner: hass
+    group: hass
+    mode: 0755
+    recurse: yes
+
+- name: Install Gogs
+  docker_container:
+    name: gogs
+    image: gogs/gogs
+    state: started
+    ports:
+    - "10022:22"
+    - "10080:3000"
+    volumes:
+    - /opt/gogs:/data 
+
+- name: Allow Gogs SSH in through the firewall
+  ufw:
+    rule: allow
+    port: 10022
+    proto: tcp
+
+- name: Allow Gogs HTTP in through the firewall
+  ufw:
+    rule: allow
+    port: 10080
+    proto: tcp

@@ -1,0 +1,26 @@
+- name: Creates MariaDB data directory
+  file:
+    path: /opt/mariadb
+    state: directory
+    owner: hass
+    group: hass
+    mode: 0755
+    recurse: yes
+
+- name: Install MariaDB
+  docker_container:
+    name: mariadb
+    image: mariadb:latest
+    state: started
+    ports:
+    - "3306:3306"
+    volumes:
+    - /opt/mariadb:/var/lib/mysql
+    env:
+      MYSQL_ROOT_PASSWORD: "hass"
+
+- name: Allow MariaDB in through the firewall
+  ufw:
+    rule: allow
+    port: 3306
+    proto: tcp

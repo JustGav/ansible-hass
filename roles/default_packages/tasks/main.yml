@@ -27,3 +27,4 @@
     - gcc
     - g++
     - make
+    - mariadb-client-core-10.1

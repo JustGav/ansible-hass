@@ -1,0 +1,24 @@
+- name: Creates ESPHome data directory
+  file:
+    path: /opt/esphome
+    state: directory
+    owner: hass
+    group: hass
+    mode: 0755
+    recurse: yes
+
+- name: Install ESPHome
+  docker_container:
+    name: esphome
+    image: esphome/esphome
+    state: started
+    ports:
+    - "6052:6052"
+    volumes:
+    - /opt/esphome:/config
+
+- name: Allow ESPHome through the firewall
+  ufw:
+    rule: allow
+    port: 6052
+    proto: tcp

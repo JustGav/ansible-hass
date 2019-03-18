@@ -24,3 +24,4 @@ Components installed
   - esphome
   - node-red
   - FFMPEG
+  - OpenALPR

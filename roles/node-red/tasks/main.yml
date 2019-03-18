@@ -1,0 +1,24 @@
+- name: Creates Node-Red data directory
+  file:
+    path: /opt/node-red
+    state: directory
+    owner: hass
+    group: hass
+    mode: 0755
+    recurse: yes
+
+- name: Install Node-Red
+  docker_container:
+    name: node-red
+    image: nodered/node-red-docker
+    state: started
+    ports:
+    - "1880:1880"
+    volumes:
+    - /opt/node-red:/data
+
+- name: Allow Node-Red in through the firewall
+  ufw:
+    rule: allow
+    port: 1880
+    proto: tcp

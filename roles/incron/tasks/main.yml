@@ -1,0 +1,34 @@
+- name: Install incron
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - incron
+
+- name: Make sure the incron service is running
+  systemd:
+    state: started
+    name: incron
+    enabled: yes
+
+- name: Ensure root can use incron
+  lineinfile:
+    path: /etc/incron.allow
+    state: present
+    line: 'root'
+
+- name: Change incron default editor
+  lineinfile:
+    path: /etc/incron.conf
+    regexp: '^editor'
+    line: 'editor = vi'
+    state: present
+
+- name: Create incron file for hass
+  copy:
+    content: |
+      /opt/hass/.homeassistant/configs IN_MODIFY,IN_ATTRIB,IN_CREATE,IN_DELETE,IN_CLOSE_WRITE systemctl restart hass
+      /opt/hass/.homeassistant/configuration.yaml IN_MODIFY,IN_ATTRIB,IN_CREATE,IN_DELETE,IN_CLOSE_WRITE systemctl restart hass
+    dest: "/var/spool/incron/root"
+    mode: 0755
+    owner: root

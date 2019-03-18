@@ -1,0 +1,25 @@
+- name: Install Samba
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - samba
+
+- name: Add SMBD service
+  systemd:
+    state: started
+    name: smbd
+    enabled: yes
+- name: Add NMBD service
+  systemd:
+    state: started
+    name: nmbd
+    enabled: yes
+
+- name: Copy over the initial samba config
+  copy:
+    src: smb.conf
+    dest: /etc/samba/smb.conf
+    owner: root
+    group: root
+    mode: 0644

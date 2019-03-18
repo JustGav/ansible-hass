@@ -1,0 +1,18 @@
+---
+# file install.yamnl
+- hosts: 127.0.0.1
+  become: yes
+
+  gather_facts: True
+  tasks:
+    - debug:
+        var : inventory_hostname
+
+  roles:
+  - common
+  - default_packages
+  - hass
+  - docker
+  - nodejs
+  - incron
+  - portainer

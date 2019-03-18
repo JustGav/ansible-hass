@@ -1,0 +1,18 @@
+- name: Add mosquitto repo
+  apt_repository:
+    repo: ppa:mosquitto-dev/mosquitto-ppa
+    state: present
+
+- name: Install mosquitto packages
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - mosquitto
+    - mosquitto-clients
+
+- name: Add mosquitto service
+  systemd:
+    state: started
+    name: mosquitto 
+    enabled: yes

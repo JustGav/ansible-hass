@@ -1,0 +1,55 @@
+- name: Install the globally package "frontail".
+  npm:
+    name: frontail
+    global: yes
+    state: present
+
+- name: Create frontail-hass service file
+  copy:
+    content: |
+      [Unit]
+      Description=Frontail for Home Assistant
+      After=network-online.target
+      [Service]
+      Type=simple
+      User=hass
+      ExecStart=/usr/bin/frontail -p 9001 -U hass -P hass --ui-highlight /opt/hass/.homeassistant/home-assistant.log --ui-highlight-preset=/opt/hass/.preset/default.json -t dark
+      [Install]
+      WantedBy=multi-user.target
+    dest: "/etc/systemd/system/frontail-hass.service"
+    mode: 0755
+    owner: root
+
+- name: Creates frontail-hass config directory
+  file:
+    path: /opt/hass/.preset
+    state: directory
+    owner: hass
+    group: hass
+    recurse: yes
+
+- name: Create frontail-hass config file
+  copy:
+    content: |
+      {
+        "words": {
+          "ERROR": "color: red;",
+          "FATAL": "color :red;",
+          "CRITICAL": "color :red;",
+          "WARNING": "color: orange;",
+          "WARN": "color: orange;",
+          "INFO": "color: green;",
+          "DEBUG": "color: white;"
+        },
+        "lines": {
+          "ERROR": "font-weight: bold;"
+        }
+      }
+    dest: "/opt/hass/.preset/default.json"
+    owner: hass
+
+- name: Add Frontail-HASS service
+  systemd:
+    state: started
+    name: frontail-hass
+    enabled: yes

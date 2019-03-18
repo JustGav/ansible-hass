@@ -1,0 +1,154 @@
+- name: Ensure group "hass" exists
+  group:
+    name: hass
+    state: present
+    
+- name: Add the user 'hass' with no shell
+  user:
+    name: hass
+    shell: /bin/false
+    group: hass
+    append: yes
+    home: /opt/hass
+    create_home: yes
+    comment: "Home Assistant"
+
+- name: Add hass user to sudo group
+  user:
+    name: hass
+    groups: sudo
+    append: yes
+
+- name: Manually create the HASS initial virtualenv
+  command: python3 -m venv /opt/hass 
+  args:
+    creates: "/opt/hass/bin/activate"
+  become: yes
+  become_user: hass
+
+- name: Setup wheel in HASS python virtualenv
+  pip:
+    virtualenv: /opt/hass
+    virtualenv_python: python3
+    name: wheel
+  become: yes
+  become_user: hass
+
+- name: Setup homeassistant in HASS python virtualenv
+  pip:
+    virtualenv: /opt/hass
+    virtualenv_python: python3
+    name: homeassistant
+  become: yes
+  become_user: hass
+
+- name: Create HASS service file
+  copy:
+    content: |
+      [Unit]
+      Description=Home Assistant
+      After=network-online.target
+      [Service]
+      Type=simple
+      User=hass
+      ExecStart=/opt/hass/bin/hass -c "/opt/hass/.homeassistant"
+      [Install]
+      WantedBy=multi-user.target
+    dest: "/etc/systemd/system/hass.service"
+    mode: 0755
+    owner: root
+
+- name: Add HASS service
+  systemd:
+    state: started
+    name: hass 
+    enabled: yes
+
+- name: Creates HASS config directory
+  file:
+    path: /opt/hass/.homeassistant/configs
+    state: directory
+    owner: hass
+    group: hass
+    mode: 0755
+    recurse: yes  
+
+- name: stat scripts.yaml
+  stat: path=/opt/hass/.homeassistant/scripts.yaml
+  register: scripts_stat
+- name: Move scripts.yaml to config folder
+  command: mv /opt/hass/.homeassistant/scripts.yaml /opt/hass/.homeassistant/configs/scripts.yaml
+  args:
+    creates: /opt/hass/.homeassistant/configs/scripts.yaml
+  when: scripts_stat.stat.exists
+
+- name: stat secrets.yaml
+  stat: path=/opt/hass/.homeassistant/secrets.yaml
+  register: secrets_stat
+- name: Move secrets.yaml to config folder
+  command: mv /opt/hass/.homeassistant/secrets.yaml /opt/hass/.homeassistant/configs/secrets.yaml
+  args:
+    creates: /opt/hass/.homeassistant/configs/secrets.yaml
+  when: secrets_stat.stat.exists
+
+- name: stat automations.yaml
+  stat: path=/opt/hass/.homeassistant/automations.yaml
+  register: automations_stat
+- name: Move automations.yaml to config folder
+  command: mv /opt/hass/.homeassistant/automations.yaml /opt/hass/.homeassistant/configs/automations.yaml
+  when: automations_stat.stat.exists
+  args:
+    creates: /opt/hass/.homeassistant/configs/automations.yaml
+
+- name: stat groups.yaml
+  stat: path=/opt/hass/.homeassistant/groups.yaml
+  register: groups_stat
+- name: Move groups.yaml to config folder
+  command: mv /opt/hass/.homeassistant/groups.yaml /opt/hass/.homeassistant/configs/groups.yaml
+  when: groups_stat.stat.exists
+  args:
+    creates: /opt/hass/.homeassistant/configs/groups.yaml
+
+- name: stat customize.yaml
+  stat: path=/opt/hass/.homeassistant/customize.yaml
+  register: customize_stat
+- name: Move customize.yaml to config folder
+  command: mv /opt/hass/.homeassistant/customize.yaml /opt/hass/.homeassistant/configs/customize.yaml
+  when: customize_stat.stat.exists
+  args: 
+    creates: /opt/hass/.homeassistant/configs/customize.yaml
+
+- name: Move group include in configuration file
+  lineinfile:
+    path: /opt/hass/.homeassistant/configuration.yaml
+    state: present
+    regexp: '^group'
+    line: 'group: !include configs/groups.yaml'
+
+- name: Move notifiers include in configuration file
+  lineinfile:
+    path: /opt/hass/.homeassistant/configuration.yaml
+    state: present
+    regexp: '^notify'
+    line: 'notify !include configs/notifiers.yaml'
+
+- name: Move automations include in configuration file
+  lineinfile:
+    path: /opt/hass/.homeassistant/configuration.yaml
+    state: present
+    regexp: '^automation'
+    line: 'automation: !include configs/automations.yaml'
+
+- name: Move scripts include in configuration file
+  lineinfile:
+    path: /opt/hass/.homeassistant/configuration.yaml
+    state: present
+    regexp: '^script'
+    line: 'script: !include configs/scripts.yaml'
+
+- name: Move device_tracker include in configuration file
+  lineinfile:
+    path: /opt/hass/.homeassistant/configuration.yaml
+    state: present
+    regexp: '^device_tracker'
+    line: 'device_tracker: !include configs/device_tracker.yaml'

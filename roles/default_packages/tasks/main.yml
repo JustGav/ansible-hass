@@ -1,0 +1,29 @@
+- name: Install a list of default packages
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg-agent
+    - software-properties-common
+    - build-essential
+    - libssl-dev
+    - libffi-dev
+    - zlib1g-dev
+    - python-docker
+    - python3-docker
+    - python3-dev
+    - python3-pip
+    - python3-venv
+    - apparmor-utils
+    - avahi-daemon
+    - dbus
+    - jq
+    - network-manager
+    - socat
+    - screen
+    - gcc
+    - g++
+    - make

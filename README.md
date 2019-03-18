@@ -10,4 +10,15 @@ Requirements
 Ubuntu 18.04
 Python3 - On by default
 A user called manager
-apt-get install -y ansible python3-docker
+Simply run the install.sh script
+
+Components installed
+  - hass
+  - docker
+  - nodejs
+  - incron
+  - portainer
+  - organizr
+  - gogs
+  - mariadb
+  - esphome

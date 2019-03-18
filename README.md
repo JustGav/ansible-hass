@@ -22,3 +22,5 @@ Components installed
   - gogs
   - mariadb
   - esphome
+  - node-red
+  - FFMPEG

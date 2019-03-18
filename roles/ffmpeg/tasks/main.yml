@@ -1,0 +1,13 @@
+- name: Install FFMPEG binary
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - ffmpeg
+
+- name: Add FFMPEG to configuration file
+  blockinfile:
+    path: /opt/hass/.homeassistant/configuration.yaml
+    block: |
+      ffmpeg:
+        ffmpeg_bin: /usr/bin/ffmpeg

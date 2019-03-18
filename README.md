@@ -17,6 +17,7 @@ Components installed
   - docker
   - nodejs
   - incron
+  - samba
   - portainer
   - organizr
   - gogs

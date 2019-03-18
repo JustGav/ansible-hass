@@ -1,0 +1,25 @@
+- name: Creates CloudCMD data directory
+  file:
+    path: /opt/cloudcmd
+    state: directory
+    owner: hass
+    group: hass
+    mode: 0755
+    recurse: yes
+
+- name: Install CloudCMD
+  docker_container:
+    name: cloudcmd
+    image: coderaiser/cloudcmd
+    state: started
+    ports:
+    - "8000:8000"
+    volumes:
+    - /opt/cloudcmd:/~
+    - /opt/hass/.homeassistant:/mnt/fs
+
+- name: Allow CloudCMD through the firewall
+  ufw:
+    rule: allow
+    port: 8000
+    proto: tcp

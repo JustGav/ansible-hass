@@ -16,3 +16,21 @@
     state: started
     name: mosquitto 
     enabled: yes
+
+- name: Allow MQTT Unsecure in through the firewall
+  ufw:
+    rule: allow
+    port: 1883
+    proto: tcp
+
+- name: Allow MQTT HTTPS in through the firewall
+  ufw:
+    rule: allow
+    port: 1884
+    proto: tcp
+
+- name: Allow MQTT Websocket in through the firewall
+  ufw:
+    rule: allow
+    port: 8883
+    proto: tcp

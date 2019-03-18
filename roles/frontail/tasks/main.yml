@@ -53,3 +53,9 @@
     state: started
     name: frontail-hass
     enabled: yes
+
+- name: Allow Frontail in through the firewall
+  ufw:
+    rule: allow
+    port: 9001
+    proto: tcp

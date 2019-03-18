@@ -10,9 +10,11 @@
 
   roles:
   - common
+  - firewall
   - default_packages
   - hass
   - docker
   - nodejs
   - incron
   - portainer
+  - organizr

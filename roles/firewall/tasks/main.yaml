@@ -1,0 +1,9 @@
+- name: Add HASS service
+  systemd:
+    state: started
+    name: hass
+    enabled: yes
+
+- ufw:
+    rule: allow
+    name: OpenSSH

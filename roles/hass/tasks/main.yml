@@ -152,3 +152,9 @@
     state: present
     regexp: '^device_tracker'
     line: 'device_tracker: !include configs/device_tracker.yaml'
+
+- name: Allow HASS in through the firewall
+  ufw:
+    rule: allow
+    port: 8123
+    proto: tcp

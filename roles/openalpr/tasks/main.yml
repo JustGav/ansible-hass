@@ -1,5 +1,5 @@
 - name: Install OpenALPR
   docker_container:
     name: openalpr
-    image: openalpr
+    image: openalpr/openalpr
     state: present
